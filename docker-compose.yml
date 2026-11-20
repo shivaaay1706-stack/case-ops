@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: caseops
+      POSTGRES_USER: caseops
+      POSTGRES_PASSWORD: caseops
+    ports:
+      - "5432:5432"
+    volumes:
+      - caseops-postgres:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caseops -d caseops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    command: server -s3
+    ports:
+      - "8333:8333"
+    volumes:
+      - caseops-s3:/data
+
+  storage-init:
+    image: amazon/aws-cli:2.22.35
+    depends_on:
+      - seaweedfs
+    environment:
+      AWS_ACCESS_KEY_ID: caseops
+      AWS_SECRET_ACCESS_KEY: change-this-secret
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: >
+      /bin/sh -c "until aws --endpoint-url http://seaweedfs:8333 s3api list-buckets; do sleep 1; done;
+      aws --endpoint-url http://seaweedfs:8333 s3 mb s3://caseops-evidence || true"
+
+volumes:
+  caseops-postgres:
+  caseops-s3:

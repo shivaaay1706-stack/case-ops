@@ -1,0 +1,12 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.env*
+!.env.example
+.kilo/
+
+# Local editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
